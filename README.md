@@ -30,7 +30,6 @@ Le projet consiste à développer une version numérique du jeu traditionnel mal
 
 - Détection automatique des victoires et des matchs nuls.
 - Interface utilisateur moderne et responsive développée avec React et TypeScript.
-- Gestion des statistiques de victoires.
 - Fonctionnalités Undo / Redo.
 - Chronomètre avec possibilité de pause.
 
@@ -75,7 +74,6 @@ npm run dev
 
 Les outils d'intelligence artificielle ont été utilisés comme assistants techniques afin d'accélérer certaines tâches de développement :
 
-- Assistance à la rédaction de documentation.
 - Relecture et optimisation de code.
 - Explication d'algorithmes d'intelligence artificielle.
 - Support pour la résolution de problèmes techniques.
@@ -87,8 +85,6 @@ L'implémentation de l'intelligence artificielle du jeu a été réalisée par l
 ```text
 src/logic/ai.ts
 ```
-
-Les assistants IA ont uniquement servi d'outil d'accompagnement et de support pédagogique.
 
 ---
 

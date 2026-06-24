@@ -160,7 +160,7 @@ export default function ModeSelector({
                 fontSize: "14px",
               }}
             >
-              <LuBot size={14} style={{ marginRight: 4 }} />
+              <LuBot size={14} />
               IA Mena (P1)
             </label>
             <select
@@ -189,7 +189,7 @@ export default function ModeSelector({
                 fontSize: "14px",
               }}
             >
-              <LuBot size={14} style={{ marginRight: 4 }} />
+              <LuBot size={14} />
               IA Maitso (P2)
             </label>
             <select
