@@ -32,7 +32,8 @@ export default function App() {
       ...prev,
       [mode]: {
         ...prev[mode as keyof typeof prev],
-        [game.winner]: prev[mode as keyof typeof prev][game.winner] + 1,
+        [game.winner as string]:
+          prev[mode as keyof typeof prev][game.winner as "P1" | "P2"] + 1,
       },
     }));
     lastRecorded.current = { mode, winner: game.winner };
@@ -52,6 +53,9 @@ export default function App() {
           setMode={game.setGameMode}
           difficulty={game.difficulty}
           setDifficulty={game.setDifficulty}
+          difficultyP1={game.difficultyP1}
+          difficultyP2={game.difficultyP2}
+          setDifficultyForPlayer={game.setDifficultyForPlayer}
         />
       </div>
 
@@ -62,79 +66,11 @@ export default function App() {
           player={game.currentPlayer}
           gameMode={game.gameMode}
         />
-
-        {/* Minimal stats row: left = vert, center = difficulty select (when applicable), right = rouge */}
-        <div
-          style={{
-            marginTop: 12,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-          }}
-        >
-          {/* left: vert (P2) */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: 6,
-                background: "#1f7a33",
-              }}
-            />
-            <div style={{ fontWeight: 700 }}>Vert</div>
-            <div style={{ marginLeft: 8 }}>
-              {wins[game.gameMode || "1 sy 1"]?.P2}
-            </div>
-          </div>
-
-          {/* center: difficulty select (only visible for modes with IA) */}
-          <div style={{ textAlign: "center", minWidth: 140 }}>
-            {game.gameMode !== "1 sy 1" ? (
-              <select
-                value={game.difficulty}
-                onChange={(e) => game.setDifficulty(e.target.value as any)}
-                style={{
-                  padding: "8px 10px",
-                  borderRadius: 8,
-                  border: "1px solid #ddd",
-                  background: "#fff",
-                }}
-              >
-                {game.gameMode === "1 sy IA" ? (
-                  <>
-                    <option value="easy">Mora</option>
-                    <option value="medium">Eo ho eo</option>
-                  </>
-                ) : (
-                  <option value="hard">Sarotra</option>
-                )}
-              </select>
-            ) : null}
-          </div>
-
-          {/* right: rouge (P1) */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ fontWeight: 700 }}>Rouge</div>
-            <div style={{ marginLeft: 8 }}>
-              {wins[game.gameMode || "1 sy 1"]?.P1}
-            </div>
-            <div
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: 6,
-                background: "#d8191a",
-              }}
-            />
-          </div>
-        </div>
       </div>
 
       {game.hasStarted && (
         <div style={styles.timerBox}>
-          <span style={styles.timerLabel}>Temps :</span>
+          <span style={styles.timerLabel}>Fotoana :</span>
           <span style={styles.timerValue}>
             {Math.floor(game.elapsedSeconds / 60)}:
             {String(game.elapsedSeconds % 60).padStart(2, "0")}
@@ -218,7 +154,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: '"Segoe UI", Roboto, sans-serif',
     background: "#f8f9fa",
   },
-
   navbar: {
     width: "100%",
     height: "50px",
@@ -230,12 +165,10 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
   },
-
   header: {
     textAlign: "center",
     marginBottom: "30px",
   },
-
   title: {
     margin: 0,
     fontSize: "32px",
@@ -243,20 +176,17 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#0d8352",
     letterSpacing: "0.5px",
   },
-
   subtitle: {
     marginTop: "8px",
     fontSize: "14px",
     color: "#0d8352",
     fontWeight: 500,
   },
-
   panel: {
     width: "100%",
     margin: "20px 24px",
     gap: "12px",
   },
-
   infoBox: {
     width: "100%",
     maxWidth: "400px",
@@ -267,7 +197,6 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: "20px",
     boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
   },
-
   boardWrapper: {
     width: "420px",
     height: "420px",
@@ -276,7 +205,6 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     marginBottom: "24px",
   },
-
   controls: {
     display: "flex",
     gap: "12px",
@@ -284,7 +212,6 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
     maxWidth: "400px",
   },
-
   controlButton: {
     flex: 1,
     padding: "12px",
@@ -300,7 +227,6 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
     transition: "all 0.2s",
   },
-
   timerBox: {
     display: "flex",
     gap: "10px",
@@ -309,39 +235,27 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "14px",
     color: "#1a1a1a",
   },
-
   timerLabel: {
     fontWeight: 600,
   },
-
   timerValue: {
     fontFamily: "monospace",
     fontSize: "16px",
     fontWeight: 700,
-    color: "#e74c3c",
+    color: "#0d8352",
   },
-
   reset: {
     width: "100%",
     maxWidth: "400px",
     padding: "12px",
     borderRadius: "8px",
-    border: "1px solid #667eea",
+    border: "1px solid #0d8352",
     background: "#fff",
-    color: "#667eea",
+    color: "#0d8352",
     fontWeight: 700,
     fontSize: "16px",
     cursor: "pointer",
     boxShadow: "0 3px 8px rgba(102, 126, 234, 0.15)",
     transition: "all 0.2s",
-  },
-  statsPanel: {
-    width: 200,
-    background: "#fff",
-    padding: 12,
-    borderRadius: 8,
-    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-    display: "flex",
-    flexDirection: "column",
   },
 };

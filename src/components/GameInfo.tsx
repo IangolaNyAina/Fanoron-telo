@@ -2,11 +2,11 @@ import type { Player, Phase, GameMode } from "../types/game";
 import { FiUser, FiZap } from "react-icons/fi";
 
 const getPlayerColorName = (player: Player): string => {
-  return player === "P1" ? "rouge" : "bleu";
+  return player === "P1" ? "mena" : "maitso";
 };
 
 const getPlayerColorCode = (player: Player): string => {
-  return player === "P1" ? "#d8191a" : "#2563eb";
+  return player === "P1" ? "#d8191a" : "#0d8352";
 };
 
 export default function GameInfo({
@@ -56,7 +56,7 @@ export default function GameInfo({
       ) : (
         <>
           {getPlayerIcon(player, gameMode)}
-          <span style={{ color: colorCode }}>Tour du {colorName}</span>
+          <span style={{ color: colorCode }}>Anjaran'i {colorName}</span>
         </>
       )}
     </div>

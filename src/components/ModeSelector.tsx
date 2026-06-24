@@ -1,6 +1,6 @@
 import type { GameMode } from "../types/game";
-import { FiUser } from 'react-icons/fi';
-import { LuBot } from 'react-icons/lu';
+import { FiUser } from "react-icons/fi";
+import { LuBot } from "react-icons/lu";
 
 type Difficulty = "easy" | "medium" | "hard";
 
@@ -9,14 +9,39 @@ export default function ModeSelector({
   setMode,
   difficulty,
   setDifficulty,
+  difficultyP1,
+  difficultyP2,
+  setDifficultyForPlayer,
 }: {
   mode: GameMode;
   setMode: (m: GameMode) => void;
-
   difficulty: Difficulty;
   setDifficulty: (d: Difficulty) => void;
+  difficultyP1: Difficulty;
+  difficultyP2: Difficulty;
+  setDifficultyForPlayer: (player: "P1" | "P2", d: Difficulty) => void;
 }) {
   const modes: GameMode[] = ["1 sy 1", "1 sy IA", "IA sy IA"];
+
+  const difficultyOptions = [
+    { value: "easy", label: "Mora" },
+    { value: "medium", label: "Eo ho eo" },
+    { value: "hard", label: "Sarotra" },
+  ];
+
+  const selectStyle = {
+    marginTop: "6px",
+    padding: "10px 12px",
+    borderRadius: "8px",
+    border: "1px solid #ddd",
+    cursor: "pointer",
+    fontWeight: 500,
+    fontSize: "14px",
+    background: "#fff",
+    color: "#111",
+    minWidth: 140,
+    boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
+  };
 
   return (
     <div style={{ textAlign: "center" }}>
@@ -59,9 +84,7 @@ export default function ModeSelector({
                   gap: "8px",
                 }}
               >
-                <FiUser size={16} />
-                sy
-                <FiUser size={16} />
+                <FiUser size={16} /> sy <FiUser size={16} />
               </span>
             ) : m === "1 sy IA" ? (
               <span
@@ -72,11 +95,9 @@ export default function ModeSelector({
                   gap: "8px",
                 }}
               >
-                <FiUser size={16} />
-                sy
-                <LuBot size={18} />
+                <FiUser size={16} /> sy <LuBot size={18} />
               </span>
-            ) : m === "IA sy IA" ? (
+            ) : (
               <span
                 style={{
                   display: "inline-flex",
@@ -85,59 +106,104 @@ export default function ModeSelector({
                   gap: "8px",
                 }}
               >
-                <LuBot size={18} />
-                sy
-                <LuBot size={18} />
+                <LuBot size={18} /> sy <LuBot size={18} />
               </span>
-            ) : (
-              m
             )}
           </button>
         ))}
       </div>
 
-      {mode !== "1 sy 1" && (
+      {/* Mode 1 sy IA: single difficulty selector */}
+      {mode === "1 sy IA" && (
         <div style={{ marginTop: "16px", textAlign: "center" }}>
-          <div>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "8px",
+              fontWeight: 700,
+              color: "#1a1a1a",
+              fontSize: "14px",
+            }}
+          >
+            Safidy hoan'ny fahasarotana
+          </label>
+          <select
+            value={difficulty}
+            onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+            style={selectStyle}
+          >
+            <option value="easy">Mora</option>
+            <option value="medium">Eo ho eo</option>
+          </select>
+        </div>
+      )}
+
+      {/* Mode IA sy IA: separate difficulty per AI player */}
+      {mode === "IA sy IA" && (
+        <div
+          style={{
+            marginTop: "16px",
+            display: "flex",
+            gap: "24px",
+            justifyContent: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          {/* P1 (mena/rouge) */}
+          <div style={{ textAlign: "center" }}>
             <label
               style={{
                 display: "block",
-                marginBottom: "8px",
+                marginBottom: "6px",
                 fontWeight: 700,
-                color: "#1a1a1a",
+                color: "#d8191a",
                 fontSize: "14px",
               }}
             >
-              Safidy hoan'ny fahasarotana
+              <LuBot size={14} style={{ marginRight: 4 }} />
+              IA Mena (P1)
             </label>
             <select
-              value={difficulty}
+              value={difficultyP1}
               onChange={(e) =>
-                setDifficulty(e.target.value as "easy" | "medium" | "hard")
+                setDifficultyForPlayer("P1", e.target.value as Difficulty)
               }
+              style={{ ...selectStyle, borderColor: "#d8191a33" }}
+            >
+              {difficultyOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* P2 (maitso/vert) */}
+          <div style={{ textAlign: "center" }}>
+            <label
               style={{
-                marginTop: "6px",
-                padding: "10px 12px",
-                borderRadius: "8px",
-                border: "1px solid #ddd",
-                cursor: "pointer",
-                fontWeight: 500,
+                display: "block",
+                marginBottom: "6px",
+                fontWeight: 700,
+                color: "#0d8352",
                 fontSize: "14px",
-                background: "#fff",
-                color: "#111",
-                minWidth: 160,
-                paddingRight: 28,
-                boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
               }}
             >
-              {mode === "1 sy IA" ? (
-                <>
-                  <option value="easy">Mora</option>
-                  <option value="medium">Eo ho eo</option>
-                </>
-              ) : (
-                <option value="hard">Sarotra</option>
-              )}
+              <LuBot size={14} style={{ marginRight: 4 }} />
+              IA Maitso (P2)
+            </label>
+            <select
+              value={difficultyP2}
+              onChange={(e) =>
+                setDifficultyForPlayer("P2", e.target.value as Difficulty)
+              }
+              style={{ ...selectStyle, borderColor: "#0d835233" }}
+            >
+              {difficultyOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>

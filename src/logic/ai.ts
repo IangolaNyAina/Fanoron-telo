@@ -1,69 +1,69 @@
-import { ADJACENCY, checkWin, WINNING_LINES } from './gameRules';
+import { ADJACENCY, checkWin, WINNING_LINES } from "./gameRules";
 
 import type { CellValue, Phase, Player } from "../types/game";
 
 const AI: Player = "P2";
 const HUMAN: Player = "P1";
 
+// -------------------- MOVE TYPE --------------------
+
 type Move =
-  | {
-      type: "place";
-      position: number;
-    }
-  | {
-      type: "move";
-      from: number;
-      to: number;
-    };
+  | { type: "place"; position: number }
+  | { type: "move"; from: number; to: number };
+
+// -------------------- PHASE --------------------
 
 const getPhaseFromBoard = (board: CellValue[]): Phase =>
-  board.filter((cell) => cell !== null).length >= 6 ? "movement" : "placement";
+  board.filter((c) => c !== null).length >= 6 ? "movement" : "placement";
 
-const evaluateBoard = (
-  board: CellValue[],
-  maximizingPlayer: Player,
-): number => {
-  const opponent = maximizingPlayer === AI ? HUMAN : AI;
+// -------------------- EVALUATION (AMÉLIORÉE) --------------------
 
-  if (checkWin(board, maximizingPlayer)) return 1000;
+function evaluateBoard(board: CellValue[], player: Player): number {
+  const opponent = player === AI ? HUMAN : AI;
+
+  if (checkWin(board, player)) return 1000;
   if (checkWin(board, opponent)) return -1000;
 
-  return WINNING_LINES.reduce((score, line) => {
-    const values = line.map((index) => board[index]);
-    const playerCount = values.filter(
-      (value) => value === maximizingPlayer,
-    ).length;
-    const opponentCount = values.filter((value) => value === opponent).length;
+  let score = 0;
 
-    if (playerCount > 0 && opponentCount === 0) {
-      return score + playerCount * 12;
+  for (const line of WINNING_LINES) {
+    const values = line.map((i) => board[i]);
+
+    const pCount = values.filter((v) => v === player).length;
+    const oCount = values.filter((v) => v === opponent).length;
+
+    // attaque
+    if (pCount > 0 && oCount === 0) {
+      if (pCount === 2) score += 200;
+      else if (pCount === 1) score += 20;
     }
 
-    if (opponentCount > 0 && playerCount === 0) {
-      return score - opponentCount * 12;
+    // défense
+    if (oCount > 0 && pCount === 0) {
+      if (oCount === 2) score -= 250;
+      else if (oCount === 1) score -= 25;
     }
+  }
 
-    return score;
-  }, 0);
-};
+  // centre très important
+  if (board[4] === player) score += 50;
+  if (board[4] === opponent) score -= 50;
 
-function getPlacementMoves(board: CellValue[], player: Player): Move[] {
-  const pieces = board.filter((cell) => cell === player).length;
-  if (pieces >= 3) return [];
+  return score;
+}
 
+// -------------------- MOVES --------------------
+
+function getPlacementMoves(board: CellValue[]): Move[] {
   return board
-    .map((value, position) =>
-      value === null ? { type: "place" as const, position } : null,
-    )
-    .filter(
-      (move): move is { type: "place"; position: number } => move !== null,
-    );
+    .map((v, i) => (v === null ? { type: "place", position: i } : null))
+    .filter(Boolean) as Move[];
 }
 
 function getMovementMoves(board: CellValue[], player: Player): Move[] {
   const moves: Move[] = [];
 
-  for (let from = 0; from < board.length; from++) {
+  for (let from = 0; from < 9; from++) {
     if (board[from] !== player) continue;
 
     for (const to of ADJACENCY[from]) {
@@ -81,57 +81,64 @@ function applyMove(
   move: Move,
   player: Player,
 ): CellValue[] {
-  const nextBoard = [...board];
+  const next = [...board];
 
   if (move.type === "place") {
-    nextBoard[move.position] = player;
+    next[move.position] = player;
   } else {
-    nextBoard[move.from] = null;
-    nextBoard[move.to] = player;
+    next[move.from] = null;
+    next[move.to] = player;
   }
 
-  return nextBoard;
+  return next;
 }
+
+// -------------------- MINIMAX CORRIGÉ --------------------
 
 function minimax(
   board: CellValue[],
   depth: number,
   alpha: number,
   beta: number,
-  player: Player,
+  currentPlayer: Player,
   maximizing: boolean,
+  aiPlayer: Player,
 ): number {
-  const score = evaluateBoard(board, player);
+  const score = evaluateBoard(board, aiPlayer);
 
-  if (Math.abs(score) >= 1000 || depth === 0) {
-    return score;
-  }
+  if (Math.abs(score) >= 1000 || depth === 0) return score;
 
   const phase = getPhaseFromBoard(board);
+
   const moves =
     phase === "placement"
-      ? getPlacementMoves(board, player)
-      : getMovementMoves(board, player);
+      ? getPlacementMoves(board)
+      : getMovementMoves(board, currentPlayer);
 
-  if (moves.length === 0) {
-    return 0;
-  }
+  if (moves.length === 0) return 0;
 
-  const nextPlayer = player === AI ? HUMAN : AI;
+  const opponent = aiPlayer === AI ? HUMAN : AI;
 
   if (maximizing) {
     let best = -Infinity;
 
     for (const move of moves) {
-      const nextBoard = applyMove(board, move, player);
-      best = Math.max(
-        best,
-        minimax(nextBoard, depth - 1, alpha, beta, nextPlayer, false),
+      const nextBoard = applyMove(board, move, aiPlayer);
+
+      const val = minimax(
+        nextBoard,
+        depth - 1,
+        alpha,
+        beta,
+        opponent,
+        false,
+        aiPlayer,
       );
+
+      best = Math.max(best, val);
       alpha = Math.max(alpha, best);
-      if (alpha >= beta) {
-        break;
-      }
+
+      if (alpha >= beta) break;
     }
 
     return best;
@@ -140,19 +147,28 @@ function minimax(
   let best = Infinity;
 
   for (const move of moves) {
-    const nextBoard = applyMove(board, move, player);
-    best = Math.min(
-      best,
-      minimax(nextBoard, depth - 1, alpha, beta, nextPlayer, true),
+    const nextBoard = applyMove(board, move, opponent);
+
+    const val = minimax(
+      nextBoard,
+      depth - 1,
+      alpha,
+      beta,
+      aiPlayer,
+      true,
+      aiPlayer,
     );
+
+    best = Math.min(best, val);
     beta = Math.min(beta, best);
-    if (beta <= alpha) {
-      break;
-    }
+
+    if (beta <= alpha) break;
   }
 
   return best;
 }
+
+// -------------------- EASY IA --------------------
 
 export function aiEasy(
   board: CellValue[],
@@ -165,8 +181,36 @@ export function aiEasy(
       : getMovementMoves(board, player);
 
   if (moves.length === 0) return null;
+
+  const opponent = player === AI ? HUMAN : AI;
+
+  // 1. gagner immédiatement
+  for (const move of moves) {
+    const next = applyMove(board, move, player);
+    if (checkWin(next, player)) return move;
+  }
+
+  // 2. bloquer victoire adverse
+  for (const move of moves) {
+    const next = applyMove(board, move, player);
+
+    const oppMoves =
+      phase === "placement"
+        ? getPlacementMoves(next)
+        : getMovementMoves(next, opponent);
+
+    const danger = oppMoves.some((m) =>
+      checkWin(applyMove(next, m, opponent), opponent),
+    );
+
+    if (!danger) return move;
+  }
+
+  // 3. random
   return moves[Math.floor(Math.random() * moves.length)];
 }
+
+// -------------------- MEDIUM IA (MINIMAX) --------------------
 
 export function aiMedium(
   board: CellValue[],
@@ -186,8 +230,17 @@ export function aiMedium(
   const opponent = player === AI ? HUMAN : AI;
 
   for (const move of moves) {
-    const newBoard = applyMove(board, move, player);
-    const score = minimax(newBoard, 3, -Infinity, Infinity, opponent, false);
+    const next = applyMove(board, move, player);
+
+    const score = minimax(
+      next,
+      4,
+      -Infinity,
+      Infinity,
+      opponent,
+      false,
+      player,
+    );
 
     if (score > bestScore) {
       bestScore = score;
@@ -197,6 +250,8 @@ export function aiMedium(
 
   return bestMove;
 }
+
+// -------------------- HARD IA (ALPHA-BETA OPTIMISÉ) --------------------
 
 export function aiHard(
   board: CellValue[],
@@ -210,14 +265,30 @@ export function aiHard(
 
   if (moves.length === 0) return null;
 
+  const opponent = player === AI ? HUMAN : AI;
+
+  // tri des coups (optimisation alpha-beta)
+  moves.sort((a, b) => {
+    const scoreA = evaluateBoard(applyMove(board, a, player), player);
+    const scoreB = evaluateBoard(applyMove(board, b, player), player);
+    return scoreB - scoreA;
+  });
+
   let bestMove: Move | null = null;
   let bestScore = -Infinity;
 
-  const opponent = player === AI ? HUMAN : AI;
-
   for (const move of moves) {
-    const newBoard = applyMove(board, move, player);
-    const score = minimax(newBoard, 6, -Infinity, Infinity, opponent, false);
+    const next = applyMove(board, move, player);
+
+    const score = minimax(
+      next,
+      7,
+      -Infinity,
+      Infinity,
+      opponent,
+      false,
+      player,
+    );
 
     if (score > bestScore) {
       bestScore = score;

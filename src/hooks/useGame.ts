@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
 
-import { aiEasy, aiHard, aiMedium } from '../logic/ai';
-import { ADJACENCY, checkDraw, checkWin } from '../logic/gameRules';
+import { aiEasy, aiHard, aiMedium } from "../logic/ai";
+import { ADJACENCY, checkDraw, checkWin } from "../logic/gameRules";
 
 import type {
   CellValue,
@@ -11,7 +11,7 @@ import type {
   Player,
 } from "../types/game";
 
-type Difficulty = "easy" | "medium" | "hard";
+export type Difficulty = "easy" | "medium" | "hard";
 
 type Move =
   | {
@@ -52,13 +52,14 @@ const getStateAfterMove = (
     board[move.to] = player;
   }
 
-  const winner = checkWin(board, player);
-  if (winner) {
+  // FIX: store player (not boolean) as winner
+  const hasWon = checkWin(board, player);
+  if (hasWon) {
     return {
       board,
       currentPlayer: player,
       phase: state.phase,
-      winner,
+      winner: player,
     };
   }
 
@@ -88,9 +89,25 @@ const getStateAfterMove = (
 const isHumanTurn = (gameMode: GameMode, currentPlayer: Player) =>
   gameMode === "1 sy 1" || (gameMode === "1 sy IA" && currentPlayer === "P1");
 
+const getAiMove = (
+  difficulty: Difficulty,
+  board: CellValue[],
+  phase: Phase,
+  player: Player,
+) => {
+  if (difficulty === "easy") return aiEasy(board, phase, player);
+  if (difficulty === "medium") return aiMedium(board, phase, player);
+  return aiHard(board, phase, player);
+};
+
 export const useGame = () => {
   const [gameMode, setGameModeState] = useState<GameMode>("1 sy 1");
+  // For "1 sy IA": difficulty of the single AI (P2)
+  // For "IA sy IA": difficultyP1 = AI for P1, difficultyP2 = AI for P2
   const [difficultyState, setDifficultyState] = useState<Difficulty>("medium");
+  const [difficultyP1, setDifficultyP1State] = useState<Difficulty>("medium");
+  const [difficultyP2, setDifficultyP2State] = useState<Difficulty>("hard");
+
   const [history, setHistory] = useState<GameState[]>([createInitialState()]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [selectedPiece, setSelectedPiece] = useState<number | null>(null);
@@ -109,6 +126,8 @@ export const useGame = () => {
   const resetGame = (
     mode: GameMode = gameMode,
     difficulty: Difficulty = difficultyState,
+    p1Diff: Difficulty = difficultyP1,
+    p2Diff: Difficulty = difficultyP2,
   ) => {
     setHistory([createInitialState()]);
     setHistoryIndex(0);
@@ -117,17 +136,34 @@ export const useGame = () => {
     setElapsedSeconds(0);
     setIsPaused(false);
     setGameModeState(mode);
-    setDifficultyState(
-      mode === "IA sy IA" ? "hard" : mode === "1 sy 1" ? "medium" : difficulty,
-    );
+    if (mode === "1 sy IA") {
+      setDifficultyState(difficulty);
+    } else if (mode === "IA sy IA") {
+      setDifficultyP1State(p1Diff);
+      setDifficultyP2State(p2Diff);
+    }
   };
 
   const setGameMode = (mode: GameMode) => {
-    resetGame(mode, mode === "IA sy IA" ? "hard" : difficultyState);
+    resetGame(mode, difficultyState, difficultyP1, difficultyP2);
   };
 
   const setDifficulty = (difficulty: Difficulty) => {
-    resetGame(gameMode, difficulty);
+    setDifficultyState(difficulty);
+    resetGame(gameMode, difficulty, difficultyP1, difficultyP2);
+  };
+
+  const setDifficultyForPlayer = (
+    player: "P1" | "P2",
+    difficulty: Difficulty,
+  ) => {
+    if (player === "P1") {
+      setDifficultyP1State(difficulty);
+      resetGame(gameMode, difficultyState, difficulty, difficultyP2);
+    } else {
+      setDifficultyP2State(difficulty);
+      resetGame(gameMode, difficultyState, difficultyP1, difficulty);
+    }
   };
 
   const pauseGame = () => {
@@ -214,15 +250,17 @@ export const useGame = () => {
     const delay = gameMode === "IA sy IA" ? 900 : 700;
 
     const timer = setTimeout(() => {
-      const move =
-        difficultyState === "easy"
-          ? aiEasy(board, phase, currentPlayer)
-          : difficultyState === "medium"
-            ? aiMedium(board, phase, currentPlayer)
-            : aiHard(board, phase, currentPlayer);
+      let move;
+      if (gameMode === "IA sy IA") {
+        // Each AI has its own difficulty
+        const playerDiff = currentPlayer === "P1" ? difficultyP1 : difficultyP2;
+        move = getAiMove(playerDiff, board, phase, currentPlayer);
+      } else {
+        // "1 sy IA": single difficulty for P2
+        move = getAiMove(difficultyState, board, phase, currentPlayer);
+      }
 
       if (!move) return;
-
       applyMove(move, currentPlayer);
     }, delay);
 
@@ -234,6 +272,8 @@ export const useGame = () => {
     phase,
     winner,
     difficultyState,
+    difficultyP1,
+    difficultyP2,
     isPaused,
   ]);
 
@@ -255,10 +295,13 @@ export const useGame = () => {
     gameMode,
     selectedPiece,
     difficulty: difficultyState,
+    difficultyP1,
+    difficultyP2,
     elapsedSeconds,
     hasStarted,
     setGameMode,
     setDifficulty,
+    setDifficultyForPlayer,
     handleClick,
     resetGame,
     undo,
